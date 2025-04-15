@@ -5,6 +5,14 @@
   <title>Shukla Smile Hospital</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
+    @keyframes gradientSlide {
+      0% {
+        background-position: 0% 50%;
+      }
+      100% {
+        background-position: 100% 50%;
+      }
+    }
     body {
       background: radial-gradient(circle at top, #2b2b4f, #1e1e30);
       color: white;
@@ -25,6 +33,14 @@
       color: white;
       text-align: center;
     }
+    .glass-card.card-portal {
+      background-size: 200% 200%;
+      transition: background-position 0.5s ease-in-out;
+    }
+    .glass-card.card-portal:hover {
+      background-position: 100% 50%;
+      animation: gradientSlide 3s ease infinite;
+    }
     .btn-glass {
       border: none;
       border-radius: 10px;
@@ -32,6 +48,15 @@
       font-size: 1rem;
       margin-top: 1rem;
       width: 100%;
+      background: linear-gradient(to right,rgb(135, 102, 232), #9575cd); /* Soft purple tones */
+      color: white;
+      transition: 0.3s ease-in-out;
+    }
+    .btn-glass:hover {
+      opacity: 0.9;
+      transform: scale(1.02);
+      background-position: 100% 50%;
+      animation: gradientSlide 2s ease infinite;
     }
     .card-portal {
       max-width: 300px;
@@ -48,6 +73,12 @@
       font-size: 0.875rem;
       color: #bbb;
     }
+    .bg-purple {
+      background: linear-gradient(to right, #8e44ad,rgb(254, 154, 226));
+    }
+    .bg-pink {
+      background: linear-gradient(to right, #f06292,rgb(254, 188, 229));
+    }
   </style>
 </head>
 <body>
@@ -57,18 +88,18 @@
   </div>
 
   <div class="d-flex flex-wrap justify-content-center">
-    <div class="glass-card card-portal bg-primary bg-opacity-25">
-      <img src="https://cdn-icons-png.flaticon.com/512/4240/4240704.png" alt="Children Icon">
+    <div class="glass-card card-portal bg-purple bg-opacity-25">
+      <img src="assets/media/mother.png" alt="Children Icon">
       <h4>Children Hospital</h4>
-      <p class="small">Comprehensive pediatric care with treatments for infants and children.</p>
-      <a href="login.php?role=children" class="btn btn-primary btn-glass">➜ Enter Portal</a>
+      <p class="small">Specialized pediatric care with treatments for children.</p>
+      <a href="login.php?role=children" class="btn btn-glass text-white">➜ Enter Portal</a>
     </div>
 
-    <div class="glass-card card-portal bg-danger bg-opacity-25">
-      <img src="https://cdn-icons-png.flaticon.com/512/4320/4320337.png" alt="Gynae Icon">
+    <div class="glass-card card-portal bg-pink bg-opacity-25">
+      <img src="assets/media/gynae.png" alt="Gynae Icon">
       <h4>Gynaecology</h4>
       <p class="small">Specialized care for reproductive and maternity health.</p>
-      <a href="login.php?role=gynaecologist" class="btn btn-danger btn-glass">➜ Enter Portal</a>
+      <a href="login.php?role=gynaecologist" class="btn btn-glass text-white">➜ Enter Portal</a>
     </div>
   </div>
 

@@ -2,7 +2,7 @@
 session_start();
 $role = $_GET['role'] ?? 'children';
 $title = $role === 'gynaecologist' ? 'Gynaecology Department' : 'Children Hospital';
-$themeColor = $role === 'gynaecologist' ? '#ba68c8' : '#42a5f5';
+$themeColor = $role === 'gynaecologist' ? '#f06292' : '#8e44ad'; // pink for gynaecology
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     include('config/db.php');
@@ -92,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
   <div class="login-box text-center">
-    <div class="icon mb-3">👤</div>
+    <img src="assets/media/<?= $role === 'gynaecologist' ? 'gynae.png' : 'mother.png' ?>" alt="Logo" width="70" class="mb-3">
     <h4><?= $title ?></h4>
     <p class="small mb-4">Please login to continue</p>
 
@@ -110,12 +110,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </form>
 
     <div class="mt-3">
-      <a href="#">Forgot password?</a><br>
       <?php if ($role === 'children'): ?>
         <a href="login.php?role=gynaecologist">Switch to Gynaecology</a>
       <?php else: ?>
         <a href="login.php?role=children">Switch to Children Hospital</a>
       <?php endif; ?>
+    </div>
+    <div class="mt-2">
+      <a href="index.php">← Back to Home</a>
     </div>
   </div>
 </body>

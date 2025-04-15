@@ -1,3 +1,4 @@
+<?php ob_start(); ?>
 <?php
 require_once('../includes/auth.php');
 require_once('../config/db.php');
@@ -82,142 +83,212 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Gynae IPD Admission</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <title>IPD Admission - Gynaecology</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700&display=swap" rel="stylesheet" />
   <style>
-    .main { margin-left: 240px; padding: 2rem; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #fff0f6, #fdfdff);
+      min-height: 100vh;
+      margin: 0;
+    }
+
+    .main {
+      margin-left: 260px;
+      padding: 3rem 2rem;
+      background: linear-gradient(to bottom right, #fff4fa, #fce3ed);
+    }
+
+    .glass-card {
+      background: rgba(255, 255, 255, 0.75);
+      backdrop-filter: blur(14px);
+      border-radius: 24px;
+      padding: 2.5rem;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.06);
+      max-width: 1080px;
+      margin: auto;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+
+    h2 {
+      color: #692146;
+      font-weight: 700;
+      margin-bottom: 2rem;
+    }
+
+    label {
+      color: #46152e;
+      font-weight: 600;
+    }
+
+    .form-control,
+    .form-select {
+      border-radius: 14px;
+      border: 1px solid #ddd;
+      transition: 0.3s all ease-in-out;
+      background: #fff;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+      border-color: #b84d81;
+      box-shadow: 0 0 0 4px rgba(185, 77, 129, 0.1);
+    }
+
+    .btn-primary {
+            background: linear-gradient(to right, #c0507d, #a03d67);
+            border: none;
+            padding: 0.6rem 2rem;
+            border-radius: 30px;
+            font-weight: 600;
+            color: white;
+            transition: 0.3s;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+    .alert {
+      border-radius: 12px;
+      padding: 1rem 1.5rem;
+      font-weight: 500;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
   </style>
-  <script>
-    function calculateFullAge() {
+   <script>
+     function calculateFullAge() {
       const dob = document.getElementById('dob').value;
       if (dob) {
         const birth = new Date(dob);
         const today = new Date();
         let years = today.getFullYear() - birth.getFullYear();
-        let months = today.getMonth() - birth.getMonth();
-        let days = today.getDate() - birth.getDate();
-        if (days < 0) { months--; days += 30; }
-        if (months < 0) { years--; months += 12; }
-        document.getElementById('age_display').innerText = `${years} Yrs ${months} Mths ${days} Days`;
+        const m = today.getMonth() - birth.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+          years--;
+        }
+        document.getElementById('age_display').innerText = `${years} Yrs`;
       }
     }
   </script>
 </head>
-<body class="bg-light">
+<body>
 <div class="main">
-  <h3 class="mb-4">IPD Admission - Gynaecology</h3>
+  <div class="glass-card">
+    <h2>Gynae IPD Admission</h2>
 
-  <?php if ($success): ?>
-    <div class="alert alert-success"><?= $success ?></div>
-  <?php elseif ($error): ?>
-    <div class="alert alert-danger"><?= $error ?></div>
-  <?php endif; ?>
+    <?php if ($success): ?>
+      <div class="alert alert-success"><?= $success ?></div>
+    <?php elseif ($error): ?>
+      <div class="alert alert-danger"><?= $error ?></div>
+    <?php endif; ?>
 
-  <!-- Search MR No -->
-  <form method="GET" class="row g-2 mb-4">
-    <div class="col-md-4">
-      <input type="text" name="mr_number" class="form-control" placeholder="Enter MR Number" required>
-    </div>
-    <div class="col-md-2">
-      <button class="btn btn-primary">Search</button>
-    </div>
-  </form>
+    <form method="GET" class="row g-2 mb-4">
+      <div class="col-md-4">
+        <input type="text" name="mr_number" class="form-control" placeholder="Enter MR Number" required>
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-primary">Search</button>
+      </div>
+    </form>
 
-  <!-- IPD Form -->
-  <form class="row g-3" method="POST">
-    <?= csrf_field() ?>
+    <form class="row g-3" method="POST">
+      <?= csrf_field() ?>
 
-    <div class="col-md-4">
-      <label>MR No <span class="text-danger">*</span></label>
-      <input type="text" name="mr_number" class="form-control" value="<?= htmlspecialchars($patient['mr_number'] ?? '') ?>" required>
-    </div>
-    <div class="col-md-4">
-      <label>IPD No <span class="text-danger">*</span></label>
-      <input type="text" name="ipd_no" class="form-control" value="<?= $ipd_no ?>" required>
-    </div>
-    <div class="col-md-4">
-      <label>Patient Name</label>
-      <input type="text" class="form-control" value="<?= $patient['name'] ?? '' ?>" readonly>
-    </div>
+      <div class="col-md-4">
+        <label>MR No <span class="text-danger">*</span></label>
+        <input type="text" name="mr_number" class="form-control" value="<?= htmlspecialchars($patient['mr_number'] ?? '') ?>" required>
+      </div>
+      <div class="col-md-4">
+        <label>IPD No <span class="text-danger">*</span></label>
+        <input type="text" name="ipd_no" class="form-control" value="<?= $ipd_no ?>" required>
+      </div>
+      <div class="col-md-4">
+        <label>Patient Name</label>
+        <input type="text" class="form-control" value="<?= $patient['name'] ?? '' ?>" readonly>
+      </div>
 
-    <div class="col-md-4">
-      <label>DOB</label>
-      <input type="date" class="form-control" id="dob" onchange="calculateFullAge()" value="<?= $patient['dob'] ?? '' ?>" readonly>
-    </div>
-    <div class="col-md-4">
-      <label>Sex</label>
-      <input type="text" class="form-control" value="<?= $patient['sex'] ?? '' ?>" readonly>
-    </div>
-    <div class="col-md-4">
-      <label>Age</label>
-      <div id="age_display" class="pt-2"><?= isset($patient['age']) ? $patient['age'] . " Yrs" : "" ?></div>
-    </div>
+      <div class="col-md-4">
+        <label>DOB</label>
+        <input type="date" class="form-control" id="dob" onchange="calculateFullAge()" value="<?= $patient['dob'] ?? '' ?>" readonly>
+      </div>
+      <div class="col-md-4">
+        <label>Sex</label>
+        <input type="text" class="form-control" value="<?= $patient['sex'] ?? '' ?>" readonly>
+      </div>
+      <div class="col-md-4">
+        <label>Age</label>
+        <div id="age_display" class="pt-2"><?= isset($patient['age']) ? $patient['age'] : "" ?></div>
+      </div>
 
-    <div class="col-md-6">
-      <label>Address</label>
-      <input type="text" class="form-control" value="<?= $patient['address'] ?? '' ?>" readonly>
-    </div>
-    <div class="col-md-3">
-      <label>Ward</label>
-      <input type="text" class="form-control" name="ward">
-    </div>
-    <div class="col-md-3">
-      <label>Bed No</label>
-      <input type="text" class="form-control" name="bed">
-    </div>
+      <div class="col-md-6">
+        <label>Address</label>
+        <input type="text" class="form-control" value="<?= $patient['address'] ?? '' ?>" readonly>
+      </div>
+      <div class="col-md-3">
+        <label>Ward</label>
+        <input type="text" class="form-control" name="ward">
+      </div>
+      <div class="col-md-3">
+        <label>Bed No</label>
+        <input type="text" class="form-control" name="bed">
+      </div>
 
-    <div class="col-md-4">
-      <label>Department</label>
-      <input type="text" class="form-control" value="<?= $patient['department'] ?? '' ?>" readonly>
-    </div>
-    <div class="col-md-4">
-      <label>Doctor Name</label>
-      <input type="text" class="form-control" name="doctor" value="<?= $patient['doctor'] ?? '' ?>">
-    </div>
-    <div class="col-md-4">
-      <label>Ref. By</label>
-      <input type="text" class="form-control" name="ref_by">
-    </div>
+      <div class="col-md-4">
+        <label>Department</label>
+        <input type="text" class="form-control" value="<?= $patient['department'] ?? '' ?>" readonly>
+      </div>
+      <div class="col-md-4">
+        <label>Doctor</label>
+        <input type="text" class="form-control" name="doctor" value="<?= $patient['doctor'] ?? '' ?>">
+      </div>
+      <div class="col-md-4">
+        <label>Referred By</label>
+        <input type="text" class="form-control" name="ref_by">
+      </div>
 
-    <div class="col-md-3">
-      <label>Date of Admission</label>
-      <input type="date" class="form-control" name="doa" value="<?= date('Y-m-d') ?>">
-    </div>
-    <div class="col-md-3">
-      <label>Time of Admission</label>
-      <input type="time" class="form-control" name="toa" value="<?= date('H:i') ?>">
-    </div>
-    <div class="col-md-3">
-      <label>Date of Discharge</label>
-      <input type="date" class="form-control" name="dod">
-    </div>
-    <div class="col-md-3">
-      <label>Time of Discharge</label>
-      <input type="time" class="form-control" name="tod">
-    </div>
+      <div class="col-md-3">
+        <label>Admission Date</label>
+        <input type="date" class="form-control" name="doa" value="<?= date('Y-m-d') ?>">
+      </div>
+      <div class="col-md-3">
+        <label>Admission Time</label>
+        <input type="time" class="form-control" name="toa" value="<?= date('H:i') ?>">
+      </div>
+      <div class="col-md-3">
+        <label>Discharge Date</label>
+        <input type="date" class="form-control" name="dod">
+      </div>
+      <div class="col-md-3">
+        <label>Discharge Time</label>
+        <input type="time" class="form-control" name="tod">
+      </div>
 
-    <div class="col-md-4">
-      <label>Email</label>
-      <input type="email" class="form-control" name="email" value="<?= $patient['email'] ?? '' ?>">
-    </div>
-    <div class="col-md-4">
-      <label>Mobile</label>
-      <input type="text" class="form-control" name="mobile" value="<?= $patient['mobile'] ?? '' ?>">
-    </div>
-    <div class="col-md-4">
-      <label>Category</label>
-      <input type="text" class="form-control" name="category" value="<?= $patient['category'] ?? '' ?>">
-    </div>
+      <div class="col-md-4">
+        <label>Email</label>
+        <input type="email" class="form-control" name="email" value="<?= $patient['email'] ?? '' ?>">
+      </div>
+      <div class="col-md-4">
+        <label>Mobile</label>
+        <input type="text" class="form-control" name="mobile" value="<?= $patient['mobile'] ?? '' ?>">
+      </div>
+      <div class="col-md-4">
+        <label>Category</label>
+        <input type="text" class="form-control" name="category" value="<?= $patient['category'] ?? '' ?>">
+      </div>
 
-    <div class="col-md-4">
-      <label>Amount</label>
-      <input type="number" step="0.01" class="form-control" name="amount">
-    </div>
+      <div class="col-md-4">
+        <label>Amount</label>
+        <input type="number" step="0.01" class="form-control" name="amount">
+      </div>
 
-    <div class="col-12 text-end">
-      <button class="btn btn-primary">Save IPD Record</button>
-    </div>
-  </form>
+      <div class="col-12 text-end pt-3">
+        <button class="btn btn-primary">Save IPD Record</button>
+      </div>
+    </form>
+  </div>
 </div>
+<?php include('../includes/footer.php'); ?>
 </body>
 </html>

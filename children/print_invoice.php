@@ -1,25 +1,10 @@
 <?php
 require_once('../includes/auth.php');
 require_once('../config/db.php');
+include('../includes/sidebar.php');
 hasRole('children');
 
-$bill_no = $_GET['bill_no'] ?? '';
-if (!$bill_no) die("Missing bill_no");
-
-// Fetch invoice
-$stmt = $conn->prepare("SELECT * FROM invoices WHERE bill_no = ?");
-$stmt->bind_param("s", $bill_no);
-$stmt->execute();
-$invoice = $stmt->get_result()->fetch_assoc();
-if (!$invoice) die("Invoice not found");
-
-// Fetch service items
-$stmt = $conn->prepare("SELECT * FROM invoice_services WHERE bill_no = ?");
-$stmt->bind_param("s", $bill_no);
-$stmt->execute();
-$services = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-
-// Amount in words function (handles up to 99 crore)
+// Function to convert numbers to words
 function numberToWords($num) {
     $ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", 
              "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", 
@@ -93,6 +78,62 @@ function convertThreeDigits($num, $ones, $tens) {
     
     return implode(" ", $result);
 }
+
+// Get bill number from query parameter
+$bill_no = $_GET['bill_no'] ?? '';
+if (empty($bill_no)) {
+    die("Error: Missing bill number");
+}
+
+// Initialize variables with default values
+$invoice = [
+    'mr_number' => '',
+    'bill_no' => '',
+    'date' => '',
+    'patient_name' => '',
+    'ipd_no' => '',
+    'admit_date' => '',
+    'admit_time' => '',
+    'department' => '',
+    'discharge_date' => '',
+    'discharge_time' => '',
+    'bed_no' => '',
+    'doctor_name' => '',
+    'age' => '',
+    'sex' => '',
+    'total_amount' => 0,
+    'discount' => 0,
+    'surcharge' => 0,
+    'net_payable' => 0,
+    'advance_paid' => 0,
+    'final_amount' => 0,
+    'balance' => 0
+];
+
+$services = [];
+
+try {
+    // Fetch invoice data
+    $stmt = $conn->prepare("SELECT * FROM invoices WHERE bill_no = ?");
+    $stmt->bind_param("s", $bill_no);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows === 0) {
+        die("Error: Invoice not found");
+    }
+    
+    $invoice = $result->fetch_assoc();
+    
+    // Fetch service items
+    $stmt = $conn->prepare("SELECT * FROM invoice_services WHERE bill_no = ?");
+    $stmt->bind_param("s", $bill_no);
+    $stmt->execute();
+    $services = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    
+} catch (Exception $e) {
+    die("Database error: " . $e->getMessage());
+}
 ?>
 
 <!DOCTYPE html>
@@ -101,46 +142,70 @@ function convertThreeDigits($num, $ones, $tens) {
     <title>Print Invoice</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #fff;
+        }
+
+        .container {
+            max-width: 900px;
+            padding: 20px;
+            background-color: #fefefe;
+            border-radius: 12px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
         @media print {
             @page { size: A4 portrait; margin: 20mm; }
             body * { visibility: hidden; }
-            #invoice, #invoice * { visibility: visible; }
-            #invoice { position: absolute; top: 0; left: 0; width: 100%; font-size: 13px; }
+            #printable, #printable * { visibility: visible; }
+            #printable { position: absolute; top: 0; left: 0; width: 100%; font-size: 13px; }
             .no-print { display: none !important; }
         }
-        .table-sm td, .table-sm th { padding: 5px; font-size: 13px; }
-        .text-end { text-align: right; }
-        .border-none td, .border-none th { border: none !important; }
+
+        .table td, .table th { padding: 4px 8px; font-size: 13px; }
+        .label { font-weight: 600; color: #2e2e2e; font-size: 14px; }
+        h5, h6 { font-weight: 700; color: #2a3f54; margin: 0; }
+        table.table td, table.table th { vertical-align: top; border: 1px solid #dee2e6; }
+        .mb-2 { border-left: 4px solid #8d79f6; padding-left: 10px; background: #f9f9ff; margin-bottom: 12px; }
+        .no-print .btn-primary {
+            background: linear-gradient(to right, #8d79f6, #7464ea);
+            border: none;
+            padding: 0.6rem 2rem;
+            border-radius: 30px;
+            font-weight: 600;
+            color: white;
+            transition: 0.3s;
+        }
+
+        .no-print .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        .no-print .btn-secondary {
+            background-color: #f0f0f5;
+            color: #352f78;
+            border: none;
+            padding: 0.6rem 2rem;
+            border-radius: 30px;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
-<div class="container my-4" id="invoice">
+<div class="container mt-4" id="printable">
     <div class="text-center mb-3">
         <h5 class="fw-bold">SMILE INSTITUTE OF CHILD HEALTH & ATBC</h5>
-        <p>Ramdaspeth, Birla Road, Akola</p>
+        <p class="mb-1">Ramdaspeth, Birla Road, Akola</p>
         <h6 class="text-decoration-underline">BILL CUM RECEIPT</h6>
     </div>
 
-    <table class="table table-sm border-none w-100 mb-2">
-        <tr>
-            <td><strong>MR No:</strong> <?= $invoice['mr_number'] ?></td>
-            <td><strong>Bill No:</strong> <?= $invoice['bill_no'] ?></td>
-            <td><strong>Date:</strong> <?= $invoice['date'] ?></td>
-        </tr>
-        <tr>
-            <td><strong>Patient Name:</strong> <?= $invoice['patient_name'] ?></td>
-            <td><strong>IPD No:</strong> <?= $invoice['ipd_no'] ?></td>
-            <td><strong>Admit Date:</strong> <?= $invoice['admit_date'] ?> <?= $invoice['admit_time'] ?></td>
-        </tr>
-        <tr>
-            <td><strong>Department:</strong> <?= $invoice['department'] ?></td>
-            <td><strong>Discharge Date:</strong> <?= $invoice['discharge_date'] ?> <?= $invoice['discharge_time'] ?></td>
-            <td><strong>Bed No:</strong> <?= $invoice['bed_no'] ?></td>
-        </tr>
-        <tr>
-            <td><strong>Doctor:</strong> <?= $invoice['doctor_name'] ?></td>
-            <td><strong>Age/Gender:</strong> <?= $invoice['age'] ?>/<?= $invoice['sex'] ?></td>
-        </tr>
+    <table class="table table-sm">
+        <tr><td><span class="label">MR No:</span> <?= htmlspecialchars($invoice['mr_number']) ?></td><td><span class="label">Bill No:</span> <?= htmlspecialchars($invoice['bill_no']) ?></td></tr>
+        <tr><td><span class="label">Patient Name:</span> <?= htmlspecialchars($invoice['patient_name']) ?></td><td><span class="label">IPD No:</span> <?= htmlspecialchars($invoice['ipd_no']) ?></td></tr>
+        <tr><td><span class="label">Admit Date:</span> <?= htmlspecialchars($invoice['admit_date']) ?> <?= htmlspecialchars($invoice['admit_time']) ?></td><td><span class="label">Discharge Date:</span> <?= htmlspecialchars($invoice['discharge_date']) ?> <?= htmlspecialchars($invoice['discharge_time']) ?></td></tr>
+        <tr><td><span class="label">Department:</span> <?= htmlspecialchars($invoice['department']) ?></td><td><span class="label">Bed No:</span> <?= htmlspecialchars($invoice['bed_no']) ?></td></tr>
+        <tr><td><span class="label">Doctor:</span> <?= htmlspecialchars($invoice['doctor_name']) ?></td><td><span class="label">Age / Sex:</span> <?= htmlspecialchars($invoice['age']) ?> / <?= htmlspecialchars($invoice['sex']) ?></td></tr>
     </table>
 
     <hr>
@@ -162,11 +227,11 @@ function convertThreeDigits($num, $ones, $tens) {
             <tr>
                 <td><?= htmlspecialchars($srv['service_name']) ?></td>
                 <td><?= htmlspecialchars($srv['package_details']) ?></td>
-                <td class="text-end"><?= $srv['quantity'] ?></td>
-                <td class="text-end"><?= $srv['rate'] ?></td>
-                <td class="text-end"><?= $srv['amount'] ?></td>
-                <td class="text-end"><?= $srv['discount'] ?></td>
-                <td class="text-end"><?= $srv['net_amount'] ?></td>
+                <td class="text-end"><?= htmlspecialchars($srv['quantity']) ?></td>
+                <td class="text-end"><?= htmlspecialchars($srv['rate']) ?></td>
+                <td class="text-end"><?= htmlspecialchars($srv['amount']) ?></td>
+                <td class="text-end"><?= htmlspecialchars($srv['discount']) ?></td>
+                <td class="text-end"><?= htmlspecialchars($srv['net_amount']) ?></td>
             </tr>
             <?php endforeach; ?>
         </tbody>
@@ -176,18 +241,18 @@ function convertThreeDigits($num, $ones, $tens) {
         <div class="col-md-5"></div>
         <div class="col-md-7">
             <table class="table table-sm">
-                <tr><td><strong>Total Bill:</strong></td><td class="text-end"><?= $invoice['total_amount'] ?></td></tr>
-                <tr><td>Discount:</td><td class="text-end"><?= $invoice['discount'] ?></td></tr>
-                <tr><td>Surcharge:</td><td class="text-end"><?= $invoice['surcharge'] ?></td></tr>
-                <tr><td><strong>Net Payable:</strong></td><td class="text-end"><?= $invoice['net_payable'] ?></td></tr>
-                <tr><td>Advance Paid:</td><td class="text-end"><?= $invoice['advance_paid'] ?></td></tr>
-                <tr><td><strong>Final Amount:</strong></td><td class="text-end"><?= $invoice['final_amount'] ?></td></tr>
-                <tr><td>Balance:</td><td class="text-end"><?= $invoice['balance'] ?></td></tr>
+                <tr><td><strong>Total Bill:</strong></td><td class="text-end"><?= htmlspecialchars($invoice['total_amount']) ?></td></tr>
+                <tr><td>Discount:</td><td class="text-end"><?= htmlspecialchars($invoice['discount']) ?></td></tr>
+                <tr><td>Surcharge:</td><td class="text-end"><?= htmlspecialchars($invoice['surcharge']) ?></td></tr>
+                <tr><td><strong>Net Payable:</strong></td><td class="text-end"><?= htmlspecialchars($invoice['net_payable']) ?></td></tr>
+                <tr><td>Advance Paid:</td><td class="text-end"><?= htmlspecialchars($invoice['advance_paid']) ?></td></tr>
+                <tr><td><strong>Final Amount:</strong></td><td class="text-end"><?= htmlspecialchars($invoice['final_amount']) ?></td></tr>
+                <tr><td>Balance:</td><td class="text-end"><?= htmlspecialchars($invoice['balance']) ?></td></tr>
             </table>
         </div>
     </div>
 
-    <div class="mt-3">
+    <div class="mt-2">
         <strong>Amount in Words:</strong>
         <?= numberToWords((int)($invoice['final_amount'])) ?>
     </div>
@@ -195,16 +260,17 @@ function convertThreeDigits($num, $ones, $tens) {
     <div class="text-end mt-4 fw-bold">
         Signature
     </div>
-    <hr>
-    <div class="d-flex justify-content-between">
+
+    <div class="d-flex justify-content-between mt-3">
         <small>Printed on <?= date('d/m/Y h:i A') ?></small>
         <small>Page 1/1</small>
     </div>
 </div>
 
 <div class="text-center mt-4 no-print">
-    <button class="btn btn-primary" onclick="window.print()">Print Invoice</button>
+    <button class="btn btn-primary" onclick="window.print()">Print</button>
     <a href="invoice.php" class="btn btn-secondary">Back</a>
 </div>
+<?php include('../includes/footer.php'); ?>
 </body>
 </html>

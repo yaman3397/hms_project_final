@@ -1,10 +1,15 @@
 <?php
 require_once('../includes/auth.php');
 require_once('../config/db.php');
+include('../includes/sidebar.php');
 hasRole('children');
 
-$discharge_id = $_GET['id'] ?? '';
-if (!$discharge_id) die("Missing discharge ID");
+$discharge_id = $_GET['print_id'] ?? '';
+
+if (!$discharge_id) {
+    echo "<div style='margin: 2rem; font-family: sans-serif; color: red;'>Discharge ID is missing in the URL. Please go back and try again.</div>";
+    exit;
+}
 
 $stmt = $conn->prepare("SELECT * FROM discharge_summary WHERE discharge_id = ?");
 $stmt->bind_param("s", $discharge_id);
@@ -24,6 +29,19 @@ function safeDisplay($value) {
     <title>Discharge Summary</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #fff;
+        }
+
+        .container {
+            max-width: 900px;
+            padding: 20px;
+            background-color: #fefefe;
+            border-radius: 12px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
         @media print {
             @page { size: A4 portrait; margin: 20mm; }
             body * { visibility: hidden; }
@@ -31,15 +49,20 @@ function safeDisplay($value) {
             #printable { position: absolute; top: 0; left: 0; width: 100%; font-size: 13px; }
             .no-print { display: none !important; }
         }
+
         .table td, .table th { padding: 4px 8px; font-size: 13px; }
-        .label { font-weight: bold; }
+        .label { font-weight: 600; color: #2e2e2e; font-size: 14px; }
+        h5, h6 { font-weight: 700; color: #2a3f54; margin: 0; }
+        table.table td, table.table th { vertical-align: top; border: 1px solid #dee2e6; }
+        .mb-2 { border-left: 4px solid #8d79f6; padding-left: 10px; background: #f9f9ff; margin-bottom: 12px; }
+        .no-print .btn { margin: 0 8px; }
     </style>
 </head>
 <body>
 <div class="container mt-4" id="printable">
     <div class="text-center mb-3">
         <h5 class="fw-bold">SMILE INSTITUTE OF CHILD HEALTH & ATBC</h5>
-        <p>Ramdaspeth, Birla Road, Akola</p>
+        <p class="mb-1">Ramdaspeth, Birla Road, Akola</p>
         <h6 class="text-decoration-underline">Discharge Summary</h6>
     </div>
 
@@ -53,8 +76,8 @@ function safeDisplay($value) {
             <td><span class="label">Age / Sex:</span> <?= safeDisplay($data['age']) ?> / <?= safeDisplay($data['sex']) ?></td>
         </tr>
         <tr>
-            <td><span class="label">DOB:</span> <?= safeDisplay($data['dob']) ?></td>
             <td><span class="label">Mobile:</span> <?= safeDisplay($data['mobile']) ?></td>
+            <td><span class="label">Email:</span> <?= safeDisplay($data['email']) ?></td>
         </tr>
         <tr>
             <td><span class="label">Doctor:</span> <?= safeDisplay($data['doctor_name']) ?></td>
@@ -69,8 +92,7 @@ function safeDisplay($value) {
             <td><span class="label">Discharge Date:</span> <?= safeDisplay($data['discharge_date']) ?> <?= safeDisplay($data['discharge_time']) ?></td>
         </tr>
         <tr>
-            <td><span class="label">Email:</span> <?= safeDisplay($data['email']) ?></td>
-            <td><span class="label">Ref By:</span> <?= safeDisplay($data['ref_by']) ?></td>
+            <td colspan="2"><span class="label">Discharge Type:</span> <?= safeDisplay($data['discharge_type']) ?></td>
         </tr>
         <tr>
             <td colspan="2"><span class="label">Address:</span> <?= safeDisplay($data['address']) ?></td>
@@ -86,7 +108,6 @@ function safeDisplay($value) {
     <div class="mb-2"><span class="label">Treatment Given:</span><br><?= safeDisplay($data['treatment_given']) ?></div>
     <div class="mb-2"><span class="label">Condition at Discharge:</span><br><?= safeDisplay($data['discharge_condition']) ?></div>
     <div class="mb-2"><span class="label">Treatment Advised:</span><br><?= safeDisplay($data['treatment_advised']) ?></div>
-    <div class="mb-2"><span class="label">Advise:</span><br><?= safeDisplay($data['advise']) ?></div>
     <div class="mb-2"><span class="label">Second Opinion:</span><br><?= safeDisplay($data['second_opinion']) ?></div>
     <div class="mb-2"><span class="label">Urgent Care:</span><br><?= safeDisplay($data['urgent_care']) ?></div>
     <div class="mb-2"><span class="label">Follow-up Advice:</span><br><?= safeDisplay($data['follow_up']) ?></div>
@@ -106,5 +127,6 @@ function safeDisplay($value) {
     <button class="btn btn-primary" onclick="window.print()">Print</button>
     <a href="discharge.php" class="btn btn-secondary">Back</a>
 </div>
+<?php include('../includes/footer.php'); ?>
 </body>
 </html>

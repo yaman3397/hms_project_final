@@ -1,167 +1,246 @@
 <?php
 require_once('../includes/auth.php');
 hasRole('children');
-?>
+require_once('../config/db.php');
+include('../includes/sidebar.php');
 
+function getCount($conn, $query) {
+  $stmt = $conn->prepare($query);
+  $stmt->execute();
+  $stmt->bind_result($count);
+  $stmt->fetch();
+  $stmt->close();
+  return $count;
+}
+
+$totalPatients = getCount($conn, "SELECT COUNT(*) FROM patients");
+$currentIPD = getCount($conn, "SELECT COUNT(*) FROM ipd_records WHERE discharge_date IS NULL");
+$totalNewborns = getCount($conn, "SELECT COUNT(*) FROM newborns");
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Children Hospital Dashboard</title>
+  <title>Children HMS Dashboard</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     body {
-      background: #f4f6fa;
+      background: linear-gradient(to right, #e7f0fd, #f8faff);
       font-family: 'Segoe UI', sans-serif;
     }
 
-    .sidebar {
-      position: fixed;
-      top: 0; left: 0;
-      width: 240px;
-      height: 100vh;
-      background-color: #ffffff;
-      border-right: 1px solid #e0e0e0;
-      padding: 1.5rem;
-    }
-
-    .sidebar h4 {
-      font-weight: 700;
-      color: #42a5f5;
-      margin-bottom: 2rem;
-    }
-
-    .sidebar a {
-      display: block;
-      color: #333;
-      text-decoration: none;
-      margin: 1rem 0;
-      font-weight: 500;
-    }
-
-    .sidebar a:hover {
-      color: #42a5f5;
-    }
-
-    .main {
-      margin-left: 240px;
+    .dashboard-container {
+      margin-left: 260px;
       padding: 2rem;
-      background-color: #fff;
-      min-height: 100vh;
     }
 
-    .card-stat {
-      border-radius: 15px;
+    .section-card {
+      background: rgba(255, 255, 255, 0.75);
+      backdrop-filter: blur(16px);
+      border-radius: 20px;
+      padding: 2rem;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.07);
+      margin-bottom: 2rem;
+      border: 1px solid rgba(255, 255, 255, 0.6);
+    }
+
+    .section-card h5 {
+      font-weight: 700;
+      color: #2d2651;
+      margin-bottom: 1.2rem;
+    }
+
+    .stats-box {
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .stats-card {
+      flex: 1;
+      min-width: 220px;
+      background: linear-gradient(to right, #d6cbfa, #e9e3fc);
+      border-radius: 16px;
       padding: 1.5rem;
-      background: #e3f2fd;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+      text-align: center;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
     }
 
-    .card-stat h6 {
+    .stats-card h6 {
+      font-size: 0.9rem;
+      color: #5e4e9e;
+      margin-bottom: 0.5rem;
+    }
+
+    .stats-card h3 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #2b235c;
+    }
+
+    .btn-sm-custom {
+      font-size: 0.8rem;
+      padding: 0.45rem 1.2rem;
+      border-radius: 12px;
       font-weight: 600;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06);
     }
 
-    .quick-actions a {
-      margin: 0.5rem;
-      font-weight: 500;
+    .table-wrapper {
+      max-height: 260px;
+      overflow-y: auto;
     }
 
-    .recent-patients th {
-      background: #e3f2fd;
+    table {
+      border-radius: 8px;
+      overflow: hidden;
     }
 
-    .btn-glass {
-      background: #42a5f5;
+    table thead {
+      background: #bbb2f5;
+    }
+
+    table thead th {
       color: white;
-      border-radius: 10px;
-      padding: 0.6rem 1.2rem;
-      font-weight: 500;
+      font-size: 0.87rem;
     }
 
-    .btn-glass:hover {
-      background: #2196f3;
-    }
-
-    .header-title {
-      font-size: 1.8rem;
-      font-weight: 600;
+    table tbody td {
+      font-size: 0.9rem;
       color: #333;
     }
 
-    .small-title {
-      color: #999;
-      font-size: 0.9rem;
+    table tbody tr:hover {
+      background: #efecfd;
     }
   </style>
 </head>
 <body>
+<div class="dashboard-container">
 
-<div class="sidebar">
-  <h4>Children HMS</h4>
-  <a href="dashboard.php">🏠 Dashboard</a>
-  <a href="opd.php">🧾 OPD</a>
-  <a href="ipd.php">🏥 IPD</a>
-  <a href="newborn.php">👶 Newborn Registration</a>
-  <a href="discharge.php">📄 Discharge Summary</a>
-  <a href="invoice.php">💳 Invoice</a>
-  <a href="users.php">👤 Admin</a>
-  <a href="../logout.php">🚪 Logout</a>
-</div>
-
-<div class="main">
-  <div class="mb-4">
-    <div class="header-title">Children Hospital Dashboard</div>
-    <div class="small-title">Welcome, <?= $_SESSION['username'] ?> 👋</div>
-  </div>
-
-  <div class="row mb-4">
-    <?php
-    $stats = [
-      ['label' => 'Total Patients', 'value' => '0'],
-      ['label' => 'Today\'s OPD', 'value' => '0'],
-      ['label' => 'Current IPD', 'value' => '0'],
-      ['label' => 'Discharges', 'value' => '0']
-    ];
-    foreach ($stats as $s):
-    ?>
-      <div class="col-md-3">
-        <div class="card-stat">
-          <h6><?= $s['label'] ?></h6>
-          <h3><?= $s['value'] ?></h3>
-          <small class="text-muted">Updated today</small>
-        </div>
+  <!-- Hospital Overview -->
+  <div class="section-card">
+    <h5>Hospital Overview</h5>
+    <div class="stats-box">
+      <div class="stats-card">
+        <h6>Total OPD Patients</h6>
+        <h3><?= $totalPatients ?></h3>
       </div>
-    <?php endforeach; ?>
-  </div>
-
-  <div class="mb-4">
-    <h5>Quick Actions</h5>
-    <div class="quick-actions">
-      <a href="opd.php" class="btn btn-glass">➕ New OPD Registration</a>
-      <a href="ipd.php" class="btn btn-outline-info">🛏 New IPD Admission</a>
-      <a href="newborn.php" class="btn btn-outline-success">👶 Register Newborn</a>
-      <a href="discharge.php" class="btn btn-outline-secondary">📝 Discharge Summary</a>
+      <div class="stats-card">
+        <h6>Current IPD</h6>
+        <h3><?= $currentIPD ?></h3>
+      </div>
     </div>
   </div>
 
-  <div>
-    <h5>Recent Patients</h5>
-    <table class="table recent-patients">
-      <thead>
-        <tr>
-          <th>MR No.</th>
-          <th>Name</th>
-          <th>Contact</th>
-          <th>Visit Date</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr><td colspan="5" class="text-muted text-center">No recent patients found</td></tr>
-      </tbody>
-    </table>
+  <!-- Recent OPD Patients -->
+  <div class="section-card">
+    <div class="d-flex justify-content-between align-items-center">
+      <h5>Recent OPD Patients</h5>
+      <a href="opd.php" class="btn btn-primary btn-sm-custom">Register OPD</a>
+    </div>
+    <div class="table-wrapper mt-3">
+      <table class="table table-sm">
+        <thead><tr><th>MR No.</th><th>Name</th><th>Date</th></tr></thead>
+        <tbody>
+          <?php
+          $result = $conn->query("SELECT mr_number, name, opd_no FROM patients ORDER BY mr_number DESC LIMIT 10");
+          while ($row = $result->fetch_assoc()): ?>
+            <tr>
+              <td><?= htmlspecialchars($row['mr_number']) ?></td>
+              <td><?= htmlspecialchars($row['name']) ?></td>
+              <td><?= htmlspecialchars($row['opd_no']) ?></td>
+            </tr>
+          <?php endwhile; ?>
+        </tbody>
+      </table>
+    </div>
   </div>
-</div>
 
+  <!-- Recent IPD -->
+  <div class="section-card">
+    <div class="d-flex justify-content-between align-items-center">
+      <h5>Recent IPD Admissions</h5>
+      <a href="ipd.php" class="btn btn-info btn-sm-custom text-white">Admit IPD</a>
+    </div>
+    <div class="table-wrapper mt-3">
+      <table class="table table-sm">
+        <thead><tr><th>MR No.</th><th>IPD No.</th><th>Name</th><th>Date</th></tr></thead>
+        <tbody>
+          <?php
+          $result = $conn->query("
+            SELECT r.mr_number, r.ipd_no, p.name AS patient_name, r.admission_date
+            FROM ipd_records r
+            JOIN patients p ON r.mr_number = p.mr_number
+            ORDER BY r.id DESC LIMIT 10
+          ");
+          while ($row = $result->fetch_assoc()): ?>
+            <tr>
+              <td><?= htmlspecialchars($row['mr_number']) ?></td>
+              <td><?= htmlspecialchars($row['ipd_no']) ?></td>
+              <td><?= htmlspecialchars($row['patient_name']) ?></td>
+              <td><?= htmlspecialchars($row['admission_date']) ?></td>
+            </tr>
+          <?php endwhile; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Newborn Registrations -->
+  <div class="section-card">
+    <div class="d-flex justify-content-between align-items-center">
+      <h5>Newborn Registrations (Total: <?= $totalNewborns ?>)</h5>
+      <a href="newborn.php" class="btn btn-success btn-sm-custom">Register Newborn</a>
+    </div>
+    <div class="table-wrapper mt-3">
+      <table class="table table-sm">
+        <thead><tr><th>MR No.</th><th>Name</th><th>Date of Birth</th></tr></thead>
+        <tbody>
+          <?php
+          $result = $conn->query("SELECT baby_mr, baby_name, dob FROM newborns ORDER BY id DESC LIMIT 10");
+          while ($row = $result->fetch_assoc()): ?>
+            <tr>
+              <td><?= htmlspecialchars($row['baby_mr']) ?></td>
+              <td><?= htmlspecialchars($row['baby_name']) ?></td>
+              <td><?= htmlspecialchars($row['dob']) ?></td>
+            </tr>
+          <?php endwhile; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Recent Invoices -->
+  <div class="section-card">
+    <div class="d-flex justify-content-between align-items-center">
+      <h5>Recent Invoices</h5>
+      <a href="invoice.php" class="btn btn-warning btn-sm-custom">Create Invoice</a>
+    </div>
+    <div class="table-wrapper mt-3">
+      <table class="table table-sm">
+        <thead><tr><th>Invoice #</th><th>MR No.</th><th>Name</th><th>Amount</th></tr></thead>
+        <tbody>
+          <?php
+          $result = $conn->query("
+            SELECT bill_no, mr_number, patient_name, final_amount
+            FROM invoices
+            ORDER BY bill_no DESC LIMIT 10
+          ");
+          while ($row = $result->fetch_assoc()): ?>
+            <tr>
+              <td><?= htmlspecialchars($row['bill_no']) ?></td>
+              <td><?= htmlspecialchars($row['mr_number']) ?></td>
+              <td><?= htmlspecialchars($row['patient_name']) ?></td>
+              <td>₹<?= number_format($row['final_amount'], 2) ?></td>
+            </tr>
+          <?php endwhile; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+<?php include('../includes/footer.php'); ?>
 </body>
 </html>
